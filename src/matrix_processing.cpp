@@ -42,7 +42,9 @@ Eigen::MatrixXd numpyToEigen(py::array_t<double, py::array::c_style | py::array:
     return matrix;
 }
 
-py::array process(py::array input) {    int n = 5;
+py::array process(py::array input) {
+    // setting up the pipeline
+    int n = 5;
     int mean_delay = 9;
     int gauss_delay = 8;
     double sigma = 1;
@@ -51,42 +53,49 @@ py::array process(py::array input) {    int n = 5;
     int window = 300;
     int cutoff = 120;
     int max_val = 300;
-    //return input;
-    // Access numpy array data
-    // py::buffer_info buf = input.request();
-    // double *ptr = (double *) buf.ptr;
-    // preprocessing
-    Eigen::MatrixXd imgMatrix = numpyToEigen(input).transpose().rowwise().reverse();
-    //std::cout << imgMatrix << std::flush;
-    // std::cout << imgMatrix.rows()<<std::flush;// << ' ' << imgMatrix.cols << std::flush;
     std::vector<double> gaussianKernel = generateGaussianKernel(gauss_delay, sigma);
     std::vector<double> meanKernel = generateMeanKernel(mean_delay);
     std::vector<double> derivativeKernel = generateDerivativeKernel(n);
     std::vector<std::vector<double>> pipeline = {gaussianKernel, meanKernel, derivativeKernel};
     std::vector<std::string> pipeline_names = {"gaussian","mean","derivative"};
+
+    // conversion and preprocessing
+    Eigen::MatrixXd imgMatrix = numpyToEigen(input).transpose().rowwise().reverse();
     Eigen::MatrixXd val = imgMatrix;
+    
+    // normalization
     normalize(val);
+    
+    // bluring
     val = conv_optimized(val, pipeline[0]);
+    
+    // windowing
     Eigen::MatrixXd win_val = val.block(0,lb,val.rows(),window);
+    
+    // mean filter
     Eigen::MatrixXd nwin_val = win_val.rowwise().reverse();
     nwin_val = conv_optimized(nwin_val, pipeline[1]);
     win_val = nwin_val.rowwise().reverse();
+    
+    // first derivative
     win_val = conv_optimized(win_val, pipeline[2]);
+
+    // outlier rejection
     outlier_rejection(win_val);
 
+    // Eigen::VectorXd row_means(win_val.rows(),1);
+    // row_means = win_val.rowwise().mean();
+    
+    // obstacle mask
     Eigen::MatrixXd obstacles(val.rows(),window);
     obstacles.setZero();
-    //obstacles = win_val;
     obstacles = obstacles.array() + 1;
-    Eigen::VectorXd row_means(win_val.rows(),1);
-    row_means = win_val.rowwise().mean();
-    //std::cout << row_means << std::endl;
     int filter_padding = mean_delay + gauss_delay;
+
+    // calculate obstacles using the sign of the first derivative
     for (int i = 0; i < win_val.rows(); ++i) {
       for (int j = filter_padding; j < window; ++j) {
-        // std::cout << win_val(i,j) << std::endl;
         if ((sign(win_val(i,j)) != sign(win_val(i,j-1)))){//} or (abs(win_val(i,j)) < abs(row_means(i)))) {
-
           for (int k = j; k < obstacles.cols(); ++k) {
             obstacles(i,k) = 0;
           }
@@ -94,6 +103,8 @@ py::array process(py::array input) {    int n = 5;
         }
       }
     }
+    
+    // propagate the index of the obstacle (necessary?)
     std::vector<int> posns(obstacles.rows(),window);
     Eigen::MatrixXd endval(val.rows(), val.cols());
     endval.setZero();
@@ -105,21 +116,21 @@ py::array process(py::array input) {    int n = 5;
         }
       }
     }
-    // Create a new numpy array to return the result
+
+    // create a new numpy array to return result
     py::array_t<double> result = py::array_t<double>({posns.size()});
     auto result_buf = result.request();
     double *result_ptr = (double *) result_buf.ptr;
     
-    // std::cout << posns.size() << std::endl;
     for (size_t i = 0; i < posns.size(); i++) {
         if (posns[i] < cutoff) 
           result_ptr[i] = posns[i]; // Copy input array to result array
         else
           result_ptr[i] = max_val;
     }
-    //std::cout << "foo" << std::flush;
     return result;
 }
+
 py::array_t<double> arr_conv(py::array_t<double> array) {
     py::buffer_info buf = array.request();
     double *ptr = (double *) buf.ptr;

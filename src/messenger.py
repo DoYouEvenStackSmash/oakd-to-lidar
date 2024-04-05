@@ -9,13 +9,17 @@ from geometry_msgs.msg import Quaternion, Vector3
 import numpy as np
 
 def point_cloud(array,cam_height = 28.5):
+    """
+    Computes the true distance between the base of the camera and the obstacle
+    for all points across the horizontal fov
+    """
     mid = 310
     max_px = mid * 2
     hfov = 120
     theta_max = hfov * np.pi / 180
     dx = hfov * np.pi / 180 / (2 * mid + 1)
     rect_arr = np.zeros((2 * mid, 1))
-    # print(np.max(array))
+    
     for i in range(rect_arr.shape[0]):
         px = i+1
         theta_oc = (px - mid) / max_px * theta_max
@@ -23,8 +27,6 @@ def point_cloud(array,cam_height = 28.5):
         range_oa = range_oc / np.cos(theta_oc)
         rect_arr[i, 0] = range_oa
     return rect_arr, dx
-
-
 
 
 def populate_laserscan(msg,dx):
