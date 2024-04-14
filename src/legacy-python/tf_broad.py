@@ -8,25 +8,34 @@ import tf.transformations as tf_trans
 from geometry_msgs.msg import Quaternion
 import math
 
+
 def normalize_quaternion(quaternion_msg):
     # Compute the magnitude of the quaternion
 
-    magnitude = math.sqrt(quaternion_msg.x**2 + quaternion_msg.y**2 + quaternion_msg.z**2 + quaternion_msg.w**2)
-    magnitude=1
+    magnitude = math.sqrt(
+        quaternion_msg.x**2
+        + quaternion_msg.y**2
+        + quaternion_msg.z**2
+        + quaternion_msg.w**2
+    )
+    magnitude = 1
     # Normalize each component
     normalized_x = quaternion_msg.x / magnitude
     normalized_y = quaternion_msg.y / magnitude
     normalized_z = quaternion_msg.z / magnitude
     normalized_w = quaternion_msg.w / magnitude
-    
+
     # Create a new normalized quaternion message
-    normalized_quaternion_msg = Quaternion(normalized_x, normalized_y, normalized_z, normalized_w)
-    
+    normalized_quaternion_msg = Quaternion(
+        normalized_x, normalized_y, normalized_z, normalized_w
+    )
+
     return normalized_quaternion_msg
-    
+
+
 class IMUToOdometryTF:
     def __init__(self):
-        rospy.init_node('imu_to_odometry_tf', anonymous=True)
+        rospy.init_node("imu_to_odometry_tf", anonymous=True)
         self.tf_broadcaster = tf2_ros.TransformBroadcaster()
         self.imu_sub = rospy.Subscriber("/imu", Imu, self.imu_callback)
 
@@ -50,6 +59,7 @@ class IMUToOdometryTF:
     def run(self):
         rospy.spin()  # Keep the node running
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     imu_to_odometry_tf = IMUToOdometryTF()
     imu_to_odometry_tf.run()
