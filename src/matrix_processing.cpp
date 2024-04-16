@@ -53,6 +53,8 @@ py::array process(py::array input) {
     int window = 300;
     int cutoff = 120;
     int max_val = 300;
+    double SLOPE_THRESHOLD = 0.1;
+    int ROLLBACK = 5;
     std::vector<double> gaussianKernel = generateGaussianKernel(gauss_delay, sigma);
     std::vector<double> meanKernel = generateMeanKernel(mean_delay);
     std::vector<double> derivativeKernel = generateDerivativeKernel(n);
@@ -95,8 +97,8 @@ py::array process(py::array input) {
     // calculate obstacles using the sign of the first derivative
     for (int i = 0; i < win_val.rows(); ++i) {
       for (int j = filter_padding; j < window; ++j) {
-        if ((sign(win_val(i,j)) != sign(win_val(i,j-1)))){//} or (abs(win_val(i,j)) < abs(row_means(i)))) {
-          for (int k = j; k < obstacles.cols(); ++k) {
+        if ((sign(win_val(i,j)) != sign(win_val(i,j-1)))  || win_val(i,j) < SLOPE_THRESHOLD){
+          for (int k = j-ROLLBACK; k < obstacles.cols(); ++k) {
             obstacles(i,k) = 0;
           }
           break;

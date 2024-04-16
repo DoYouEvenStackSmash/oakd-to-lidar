@@ -31,7 +31,7 @@ stereo.initialConfig.setMedianFilter(dai.MedianFilter.MEDIAN_OFF)
 rgbCamSocket = dai.CameraBoardSocket.CAM_B
 
 
-stereo.initialConfig.setConfidenceThreshold(220)
+stereo.initialConfig.setConfidenceThreshold(200)
 stereo.setRectifyEdgeFillColor(0)
 stereo.setLeftRightCheck(False)
 stereo.setDepthAlign(rgbCamSocket)
@@ -84,11 +84,14 @@ if DISPLAY:
 
 # from collections import deque
 # frames = deque()
+from outlier_filter import *
 from messenger import *
 from viz import *
+
 ROS = True
 RATE = 25
 CUTOFF = 200
+
 
 def main():
     val = np.zeros((400, 640)) + 10000
@@ -99,10 +102,7 @@ def main():
         # Create a publisher
         laserscan_pub = rospy.Publisher("/scan", LaserScan, queue_size=10)
         imu_pub = rospy.Publisher("/imu_oak", Imu, queue_size=10)
-        # rospy.spin()
 
-        # Set the loop rate
-        rate = rospy.Rate(60)  # 10 Hz
     FIRST = 5
     with dai.Device(pp) as device:
         qdepth = device.getOutputQueue(name="depth", maxSize=60, blocking=False)
@@ -152,7 +152,7 @@ def main():
                     prev_markers[0] = np.minimum(markers, prev_markers[0])
                 if not c % RATE and FIRST < 0:
                     nval = matrix_processing.arr_conv(prev_markers[0]) / 9
-                    prev_markers[0] = nval
+                    prev_markers[0] = scalar_outlier_rejection(nval)
 
                     x, dx = point_cloud(prev_markers[0])
                     # Populate LaserScan message

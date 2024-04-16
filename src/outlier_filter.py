@@ -53,6 +53,30 @@ def outlier_rejection(mean_deriv):
     return np.clip(mean_deriv, lb[:, np.newaxis], ub[:, np.newaxis])
 
 
+def scalar_outlier_rejection(mean_deriv):
+    """
+    Vectorize IQR
+    """
+    # Calculate quartiles
+    Q1 = np.percentile(mean_deriv, 25, axis=0)
+    Q3 = np.percentile(mean_deriv, 75, axis=0)
+
+    # Calculate IQR
+    IQR = Q3 - Q1
+    threshold = 1.5 * IQR
+    lb = Q1 - threshold
+    ub = Q3 + threshold
+
+    # for row in range(mean_deriv.shape[0]):
+    # 	mean_deriv[row,:] = lb[row] if mean_deriv[row,:] < lb[row] else mean_deriv[row,:]
+    # 	mean_deriv[row,:] = ub[row] if mean_deriv[row,:] > ub[row] else mean_deriv[row,:]
+    # for col in range(mean_deriv.shape[1]):
+    # mean_deriv[row,col] = lb[row] if mean_deriv[row,col] < lb[row] else mean_deriv[row,col]
+    # mean_deriv[row,col] = ub[row] if mean_deriv[row,col] > ub[row] else mean_deriv[row,col]
+
+    return np.clip(mean_deriv, lb, ub)
+
+
 # the filters
 gauss_f = get_vec_filter(get_1d_gaussian(5))
 gauss_delay = gauss_f.shape[0]

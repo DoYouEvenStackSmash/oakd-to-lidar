@@ -19,10 +19,10 @@ Eigen::MatrixXd calculateIQR(const Eigen::MatrixXd& matrix) {
 void outlier_rejection(Eigen::MatrixXd& matrix,double threshold) {
   Eigen::MatrixXd bounds = calculateIQR(matrix);
   for (int i = 0; i < matrix.rows(); ++i) {
-    for (int j = 0; j < matrix.cols(); ++j) {
       double thres = (bounds(i,1) - bounds(i,0)) * threshold;
       double lower_bound = bounds(i,0) - thres;
       double upper_bound = bounds(i,1) + thres;
+    for (int j = 0; j < matrix.cols(); ++j) {
       matrix(i,j) = matrix(i,j) < lower_bound ? lower_bound : matrix(i,j);
       matrix(i,j) = matrix(i,j) > upper_bound ? upper_bound : matrix(i,j);
     }

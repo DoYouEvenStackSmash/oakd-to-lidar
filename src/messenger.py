@@ -47,11 +47,9 @@ def populate_laserscan(msg, dx, hfov=82):
     laserscan_msg.scan_time = 0.0
     # msg[msg>1000] = 1
     vars = msg / 100
-    vars[vars < 0.1] = 0.1
-    # vars[vars>10]=10
 
     # Populate range_min and range_max
-    laserscan_msg.range_min = 0.1
+    laserscan_msg.range_min = np.min(vars)
     laserscan_msg.range_max = np.max(vars)
 
     laserscan_msg.ranges = vars
